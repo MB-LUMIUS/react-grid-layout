@@ -134,7 +134,7 @@ function collides(l1
 )
 /*: boolean*/
 {
-  if (l1.hidden || l2.hidden) return false;
+  if (!l1.isDraggable && !l1.isResizable && l1.hidden || !l2.isDraggable && !l2.isResizable && l2.hidden) return false;
   if (l1.i === l2.i) return false; // same element
 
   if (l1.x + l1.w <= l2.x) return false; // l1 is left of l2
