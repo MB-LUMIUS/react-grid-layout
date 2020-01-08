@@ -3,6 +3,7 @@
   "version": "0.17.2",
   "description": "A fork ofthe draggable and resizable grid layout with responsive breakpoints, for React. (Originally written by Samuel Reed)",
   "main": "index.js",
+  "typings": "index.d.ts",
   "scripts": {
     "lint": "make lint",
     "test": "make test",
