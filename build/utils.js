@@ -177,7 +177,7 @@ function compact(layout
   for (var i = 0, len = sorted.length; i < len; i++) {
     var l = cloneLayoutItem(sorted[i]); // Don't move static elements
 
-    if (!l.static && !l.hidden) {
+    if (!l.static && (!l.hidden || l.hidden && !l.isResizable && !l.isDraggable)) {
       l = compactItem(compareWith, l, compactType, cols, sorted); // Add to comparison array. We only collide with items before this one.
       // Statics are already in this array.
 
@@ -219,7 +219,7 @@ function resolveCompactionCollision(layout
   for (var i = itemIndex + 1; i < layout.length; i++) {
     var otherItem = layout[i]; // Ignore static items
 
-    if (otherItem.static || otherItem.hidden) continue; // Optimization: we can break early if we know we're past this el
+    if (otherItem.static || otherItem.hidden && !otherItem.isDraggable && !otherItem.isResizable) continue; // Optimization: we can break early if we know we're past this el
     // We can do this b/c it's a sorted layout
 
     if (otherItem.y > item.y + item.h) break;
