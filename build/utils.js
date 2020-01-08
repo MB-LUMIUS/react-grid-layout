@@ -180,7 +180,7 @@ function compact(layout
   for (var i = 0, len = sorted.length; i < len; i++) {
     var l = cloneLayoutItem(sorted[i]); // Don't move static elements
 
-    if (!l.static && (!l.hidden || (l.hidden && l.isResizable && l.isDraggable))) {
+    if (!l.static && (!l.hidden || l.hidden && !l.isResizable && !l.isDraggable)) {
       l = compactItem(compareWith, l, compactType, cols, sorted); // Add to comparison array. We only collide with items before this one.
       // Statics are already in this array.
 
@@ -222,7 +222,7 @@ function resolveCompactionCollision(layout
   for (var i = itemIndex + 1; i < layout.length; i++) {
     var otherItem = layout[i]; // Ignore static items
 
-    if (otherItem.static || (otherItem.hidden && !otherItem.isDraggable && !otherItem.isResizable)) continue; // Optimization: we can break early if we know we're past this el
+    if (otherItem.static || otherItem.hidden && !otherItem.isDraggable && !otherItem.isResizable) continue; // Optimization: we can break early if we know we're past this el
     // We can do this b/c it's a sorted layout
 
     if (otherItem.y > item.y + item.h) break;
@@ -318,7 +318,7 @@ function correctBounds(layout
       l.w = bounds.cols;
     }
 
-    if (!l.static && (!l.hidden || (l.hidden && l.isDraggable && l.isResizable))) collidesWith.push(l);else {
+    if (!l.static && (!l.hidden || l.hidden && !l.isDraggable && !l.isResizable)) collidesWith.push(l);else {
       // If this is static and collides with other statics, we must move it down.
       // We have to do something nicer than just letting them overlap.
       while (getFirstCollision(collidesWith, l)) {
@@ -395,7 +395,7 @@ function getStatics(layout
 /*: Array<LayoutItem>*/
 {
   return layout.filter(function (l) {
-    return l.static || (l.hidden && !l.isDraggable && !l.isResizable);
+    return l.static || l.hidden;
   });
 }
 /**
@@ -463,7 +463,7 @@ function moveElement(layout
 
     if (collision.moved) continue; // Don't move static items - we have to move *this* element away
 
-    if (collision.static || (collision.hidden && !collision.isDraggable && !collision.isResizable)) {
+    if (collision.static || collision.hidden && !collision.isDraggable && !collision.isResizable) {
       layout = moveElementAwayFromCollision(layout, collision, l, isUserAction, compactType, cols);
     } else {
       layout = moveElementAwayFromCollision(layout, l, collision, isUserAction, compactType, cols);
@@ -500,7 +500,7 @@ function moveElementAwayFromCollision(layout
   var compactH = compactType === "horizontal"; // Compact vertically if not set to horizontal
 
   var compactV = compactType !== "horizontal";
-  var preventCollision = collidesWith.static || (collidesWith.hidden && !collidesWith.isDraggable && !collidesWith.isResizable); // we're already colliding (not for static items)
+  var preventCollision = collidesWith.static || collidesWith.hidden && !collidesWith.isDraggable && !collidesWith.isResizable; // we're already colliding (not for static items)
   // If there is enough space above the collision to put this element, move it there.
   // We only do this on the main collision as this can get funky in cascades and cause
   // unwanted swapping behavior.
