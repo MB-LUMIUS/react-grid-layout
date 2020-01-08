@@ -41,6 +41,7 @@ type Props = {
   isDraggable: boolean,
   isResizable: boolean,
   static?: boolean,
+  hidden?: boolean;
   useCSSTransforms?: boolean,
   usePercentages?: boolean,
   transformScale: number,
