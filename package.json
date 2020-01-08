@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "make lint",
     "test": "make test",
-    "build": "make build",
+    "build": "make build -f \"./makefile\"",
     "build-example": "make build-example",
     "view-example": "make view-example",
     "dev": "make dev",
@@ -15,7 +15,7 @@
     "validate": "npm ls",
     "flow": "flow",
     "precommit": "lint-staged && make lint",
-    "postinstall": "npm run build -f ./makefile"
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
