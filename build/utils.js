@@ -180,7 +180,7 @@ function compact(layout
   for (var i = 0, len = sorted.length; i < len; i++) {
     var l = cloneLayoutItem(sorted[i]); // Don't move static elements
 
-    if (!l.static && (!l.hidden || l.hidden && !l.isResizable && !l.isDraggable)) {
+    if (!l.static && (!l.hidden || l.hidden && l.isResizable && l.isDraggable)) {
       l = compactItem(compareWith, l, compactType, cols, sorted); // Add to comparison array. We only collide with items before this one.
       // Statics are already in this array.
 
