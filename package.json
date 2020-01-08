@@ -14,7 +14,8 @@
     "prepublishOnly": "make build",
     "validate": "npm ls",
     "flow": "flow",
-    "postinstall": "echo \"BUILDING RGL...\" && npm run build"
+    "precommit": "lint-staged && make lint",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
