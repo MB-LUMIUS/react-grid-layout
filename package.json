@@ -7,15 +7,14 @@
   "scripts": {
     "lint": "make lint",
     "test": "make test",
-    "build": "make build -f \"./makefile\"",
+    "build": "make build",
     "build-example": "make build-example",
     "view-example": "make view-example",
     "dev": "make dev",
     "prepublishOnly": "make build",
     "validate": "npm ls",
     "flow": "flow",
-    "precommit": "lint-staged && make lint",
-    "postinstall": "echo \"BUILDING RGL...\" && grep ^build makefile && npm run build"
+    "precommit": "lint-staged && make lint && npm run build"
   },
   "repository": {
     "type": "git",
