@@ -15,7 +15,7 @@
     "validate": "npm ls",
     "flow": "flow",
     "precommit": "lint-staged && make lint",
-    "postinstall": "npm run build"
+    "postinstall": "echo \"BUILDING RGL...\" && grep ^build makefile && npm run build"
   },
   "repository": {
     "type": "git",
