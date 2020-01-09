@@ -395,7 +395,7 @@ function getStatics(layout
 /*: Array<LayoutItem>*/
 {
   return layout.filter(function (l) {
-    return l.static || l.hidden;
+    return l.static || l.hidden && !l.isDraggable && !l.isResizable;
   });
 }
 /**
