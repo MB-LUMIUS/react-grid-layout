@@ -58,7 +58,7 @@ function bottom(layout
       bottomY;
 
   for (var i = 0, len = layout.length; i < len; i++) {
-    if (layout[i].hidden) {
+    if (layout[i].hidden && !layout[i].isDraggable && !layout[i].isResizable) {
       continue;
     }
 
