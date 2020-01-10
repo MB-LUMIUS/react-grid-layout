@@ -58,8 +58,15 @@ function bottom(layout
       bottomY;
 
   for (var i = 0, len = layout.length; i < len; i++) {
+    if (layout[i].hidden) {
+      continue;
+    }
+
     bottomY = layout[i].y + layout[i].h;
-    if (bottomY > max) max = bottomY;
+
+    if (bottomY > max) {
+      max = bottomY;
+    }
   }
 
   return max;
