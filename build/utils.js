@@ -141,6 +141,10 @@ function collides(l1
 )
 /*: boolean*/
 {
+  var ignoreHidden
+  /*: boolean*/
+  = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+  if (ignoreHidden && (l1.hidden || l2.hidden)) return false;
   if (l1.hidden && !l1.isDraggable && !l1.isResizable) return false; // Hidden and not in edit mode
 
   if (l2.hidden && !l2.isDraggable && !l2.isResizable) return false; // Hidden and not in edit mode
@@ -328,7 +332,7 @@ function correctBounds(layout
     if (!l.static && (!l.hidden || l.hidden && !l.isDraggable && !l.isResizable)) collidesWith.push(l);else {
       // If this is static and collides with other statics, we must move it down.
       // We have to do something nicer than just letting them overlap.
-      while (getFirstCollision(collidesWith, l)) {
+      while (getFirstCollision(collidesWith, l, true)) {
         l.y++;
       }
     }
@@ -373,8 +377,12 @@ function getFirstCollision(layout
 )
 /*: ?LayoutItem*/
 {
+  var ignoreHidden
+  /*: boolean*/
+  = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
   for (var i = 0, len = layout.length; i < len; i++) {
-    if (collides(layout[i], layoutItem)) return layout[i];
+    if (collides(layout[i], layoutItem, ignoreHidden)) return layout[i];
   }
 }
 
