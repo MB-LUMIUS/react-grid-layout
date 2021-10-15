@@ -4,29 +4,33 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.bottom = bottom;
+exports.childrenEqual = childrenEqual;
 exports.cloneLayout = cloneLayout;
 exports.cloneLayoutItem = cloneLayoutItem;
-exports.childrenEqual = childrenEqual;
 exports.collides = collides;
 exports.compact = compact;
 exports.compactItem = compactItem;
+exports.compactType = compactType;
 exports.correctBounds = correctBounds;
-exports.getLayoutItem = getLayoutItem;
-exports.getFirstCollision = getFirstCollision;
+exports.fastPositionEqual = fastPositionEqual;
+exports.fastRGLPropsEqual = void 0;
 exports.getAllCollisions = getAllCollisions;
+exports.getFirstCollision = getFirstCollision;
+exports.getLayoutItem = getLayoutItem;
 exports.getStatics = getStatics;
+exports.modifyLayout = modifyLayout;
 exports.moveElement = moveElement;
 exports.moveElementAwayFromCollision = moveElementAwayFromCollision;
+exports.noop = void 0;
 exports.perc = perc;
-exports.setTransform = setTransform;
 exports.setTopLeft = setTopLeft;
+exports.setTransform = setTransform;
 exports.sortLayoutItems = sortLayoutItems;
-exports.sortLayoutItemsByRowCol = sortLayoutItemsByRowCol;
 exports.sortLayoutItemsByColRow = sortLayoutItemsByColRow;
+exports.sortLayoutItemsByRowCol = sortLayoutItemsByRowCol;
 exports.synchronizeLayoutWithChildren = synchronizeLayoutWithChildren;
 exports.validateLayout = validateLayout;
-exports.autoBindHandlers = autoBindHandlers;
-exports.noop = void 0;
+exports.withLayoutItem = withLayoutItem;
 
 var _lodash = _interopRequireDefault(require("lodash.isequal"));
 
@@ -34,7 +38,7 @@ var _react = _interopRequireDefault(require("react"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) { symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); } keys.push.apply(keys, symbols); } return keys; }
 
 function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 
@@ -84,6 +88,48 @@ function cloneLayout(layout
   }
 
   return newLayout;
+} // Modify a layoutItem inside a layout. Returns a new Layout,
+// does not mutate. Carries over all other LayoutItems unmodified.
+
+
+function modifyLayout(layout
+/*: Layout*/
+, layoutItem
+/*: LayoutItem*/
+)
+/*: Layout*/
+{
+  var newLayout = Array(layout.length);
+
+  for (var i = 0, len = layout.length; i < len; i++) {
+    if (layoutItem.i === layout[i].i) {
+      newLayout[i] = layoutItem;
+    } else {
+      newLayout[i] = layout[i];
+    }
+  }
+
+  return newLayout;
+} // Function to be called to modify a layout item.
+// Does defensive clones to ensure the layout is not modified.
+
+
+function withLayoutItem(layout
+/*: Layout*/
+, itemKey
+/*: string*/
+, cb
+/*: LayoutItem => LayoutItem*/
+)
+/*: [Layout, ?LayoutItem]*/
+{
+  var item = getLayoutItem(layout, itemKey);
+  if (!item) return [layout, null];
+  item = cb(cloneLayoutItem(item)); // defensive clone then modify
+  // FIXME could do this faster if we already knew the index
+
+  layout = modifyLayout(layout, item);
+  return [layout, item];
 } // Fast path to cloning, since this is monomorphic
 
 
@@ -107,7 +153,9 @@ function cloneLayoutItem(layoutItem
     hidden: Boolean(layoutItem.hidden),
     // These can be null
     isDraggable: layoutItem.isDraggable,
-    isResizable: layoutItem.isResizable
+    isResizable: layoutItem.isResizable,
+    resizeHandles: layoutItem.resizeHandles,
+    isBounded: layoutItem.isBounded
   };
 }
 /**
@@ -124,10 +172,38 @@ function childrenEqual(a
 /*: boolean*/
 {
   return (0, _lodash.default)(_react.default.Children.map(a, function (c) {
-    return c.key;
+    return c === null || c === void 0 ? void 0 : c.key;
   }), _react.default.Children.map(b, function (c) {
-    return c.key;
+    return c === null || c === void 0 ? void 0 : c.key;
   }));
+}
+/**
+ * See `fastRGLPropsEqual.js`.
+ * We want this to run as fast as possible - it is called often - and to be
+ * resilient to new props that we add. So rather than call lodash.isEqual,
+ * which isn't suited to comparing props very well, we use this specialized
+ * function in conjunction with preval to generate the fastest possible comparison
+ * function, tuned for exactly our props.
+ */
+
+/*:: type FastRGLPropsEqual = (Object, Object, Function) => boolean;*/
+
+
+var fastRGLPropsEqual
+/*: FastRGLPropsEqual*/
+= require("./fastRGLPropsEqual"); // Like the above, but a lot simpler.
+
+
+exports.fastRGLPropsEqual = fastRGLPropsEqual;
+
+function fastPositionEqual(a
+/*: Position*/
+, b
+/*: Position*/
+)
+/*: boolean*/
+{
+  return a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
 }
 /**
  * Given two layoutitems, check if they collide.
@@ -164,6 +240,8 @@ function collides(l1
 /**
  * Given a layout, compact it. This involves going down each y coordinate and removing gaps
  * between items.
+ *
+ * Does not modify layout items (clones). Creates a new layout array.
  *
  * @param  {Array} layout Layout.
  * @param  {Boolean} verticalCompact Whether or not to compact the layout
@@ -247,6 +325,9 @@ function resolveCompactionCollision(layout
 }
 /**
  * Compact an item in the layout.
+ *
+ * Modifies item.
+ *
  */
 
 
@@ -276,8 +357,7 @@ function compactItem(compareWith
       l.y--;
     }
   } else if (compactH) {
-    l.y = Math.min(bottom(compareWith), l.y); // Move the element left as far as it can go without colliding.
-
+    // Move the element left as far as it can go without colliding.
     while (l.x > 0 && !getFirstCollision(compareWith, l)) {
       l.x--;
     }
@@ -298,12 +378,17 @@ function compactItem(compareWith
       l.x = cols - l.w;
       l.y++;
     }
-  }
+  } // Ensure that there are no negative positions
 
+
+  l.y = Math.max(l.y, 0);
+  l.x = Math.max(l.x, 0);
   return l;
 }
 /**
  * Given a layout, make sure all elements fit within its bounds.
+ *
+ * Modifies layout items.
  *
  * @param  {Array} layout Layout array.
  * @param  {Number} bounds Number of columns.
@@ -416,6 +501,8 @@ function getStatics(layout
 /**
  * Move an element. Responsible for doing cascading movements of other elements.
  *
+ * Modifies layout items.
+ *
  * @param  {Array}      layout            Full layout to modify.
  * @param  {LayoutItem} l                 element to move.
  * @param  {Number}     [x]               X position in grid units.
@@ -439,6 +526,8 @@ function moveElement(layout
 /*: CompactType*/
 , cols
 /*: number*/
+, allowOverlap
+/*: ?boolean*/
 )
 /*: Layout*/
 {
@@ -459,15 +548,19 @@ function moveElement(layout
   // nearest collision.
 
   var sorted = sortLayoutItems(layout, compactType);
-  var movingUp = compactType === "vertical" && typeof y === "number" ? oldY >= y : compactType === "horizontal" && typeof x === "number" ? oldX >= x : false;
+  var movingUp = compactType === "vertical" && typeof y === "number" ? oldY >= y : compactType === "horizontal" && typeof x === "number" ? oldX >= x : false; // $FlowIgnore acceptable modification of read-only array as it was recently cloned
+
   if (movingUp) sorted = sorted.reverse();
   var collisions = getAllCollisions(sorted, l); // There was a collision; abort
 
   if (preventCollision && collisions.length) {
-    log("Collision prevented on ".concat(l.i, ", reverting."));
-    l.x = oldX;
-    l.y = oldY;
-    l.moved = false;
+    if (!allowOverlap) {
+      log("Collision prevented on ".concat(l.i, ", reverting."));
+      l.x = oldX;
+      l.y = oldY;
+      l.moved = false;
+    }
+
     return layout;
   } // Move each item that collides away from this element.
 
@@ -609,15 +702,23 @@ function sortLayoutItems(layout
 )
 /*: Layout*/
 {
-  if (compactType === "horizontal") return sortLayoutItemsByColRow(layout);else return sortLayoutItemsByRowCol(layout);
+  if (compactType === "horizontal") return sortLayoutItemsByColRow(layout);
+  if (compactType === "vertical") return sortLayoutItemsByRowCol(layout);else return layout;
 }
+/**
+ * Sort layout items by row ascending and column ascending.
+ *
+ * Does not modify Layout.
+ */
+
 
 function sortLayoutItemsByRowCol(layout
 /*: Layout*/
 )
 /*: Layout*/
 {
-  return [].concat(layout).sort(function (a, b) {
+  // Slice to clone array as sort modifies
+  return layout.slice(0).sort(function (a, b) {
     if (a.y > b.y || a.y === b.y && a.x > b.x) {
       return 1;
     } else if (a.y === b.y && a.x === b.x) {
@@ -628,13 +729,19 @@ function sortLayoutItemsByRowCol(layout
     return -1;
   });
 }
+/**
+ * Sort layout items by column ascending then row ascending.
+ *
+ * Does not modify Layout.
+ */
+
 
 function sortLayoutItemsByColRow(layout
 /*: Layout*/
 )
 /*: Layout*/
 {
-  return [].concat(layout).sort(function (a, b) {
+  return layout.slice(0).sort(function (a, b) {
     if (a.x > b.x || a.x === b.x && a.y > b.y) {
       return 1;
     }
@@ -645,6 +752,8 @@ function sortLayoutItemsByColRow(layout
 /**
  * Generate a layout using the initialLayout and children as a template.
  * Missing entries will be added, extraneous ones will be truncated.
+ *
+ * Does not modify initialLayout.
  *
  * @param  {Array}  initialLayout Layout passed in through props.
  * @param  {String} breakpoint    Current responsive breakpoint.
@@ -661,25 +770,27 @@ function synchronizeLayoutWithChildren(initialLayout
 /*: number*/
 , compactType
 /*: CompactType*/
+, allowOverlap
+/*: ?boolean*/
 )
 /*: Layout*/
 {
   initialLayout = initialLayout || []; // Generate one layout item per child.
 
   var layout
-  /*: Layout*/
+  /*: LayoutItem[]*/
   = [];
 
   _react.default.Children.forEach(children, function (child
   /*: ReactElement<any>*/
-  , i
-  /*: number*/
   ) {
-    // Don't overwrite if it already exists.
+    // Child may not exist
+    if ((child === null || child === void 0 ? void 0 : child.key) == null) return; // Don't overwrite if it already exists.
+
     var exists = getLayoutItem(initialLayout, String(child.key));
 
     if (exists) {
-      layout[i] = cloneLayoutItem(exists);
+      layout.push(cloneLayoutItem(exists));
     } else {
       if (!isProduction && child.props._grid) {
         console.warn("`_grid` properties on children have been deprecated as of React 15.2. " + // eslint-disable-line
@@ -691,30 +802,31 @@ function synchronizeLayoutWithChildren(initialLayout
       if (g) {
         if (!isProduction) {
           validateLayout([g], "ReactGridLayout.children");
-        }
+        } // FIXME clone not really necessary here
 
-        layout[i] = cloneLayoutItem(_objectSpread({}, g, {
+
+        layout.push(cloneLayoutItem(_objectSpread(_objectSpread({}, g), {}, {
           i: child.key
-        }));
+        })));
       } else {
         // Nothing provided: ensure this is added to the bottom
-        layout[i] = cloneLayoutItem({
+        // FIXME clone not really necessary here
+        layout.push(cloneLayoutItem({
           w: 1,
           h: 1,
           x: 0,
           y: bottom(layout),
           i: String(child.key)
-        });
+        }));
       }
     }
   }); // Correct the layout.
 
 
-  layout = correctBounds(layout, {
+  var correctedLayout = correctBounds(layout, {
     cols: cols
   });
-  layout = compact(layout, compactType, cols);
-  return layout;
+  return allowOverlap ? correctedLayout : compact(correctedLayout, compactType, cols);
 }
 /**
  * Validate a layout. Throws errors.
@@ -753,19 +865,19 @@ function validateLayout(layout
       throw new Error("ReactGridLayout: " + contextName + "[" + i + "].static must be a boolean!");
     }
   }
-} // Flow can't really figure this out, so we just use Object
+} // Legacy support for verticalCompact: false
 
 
-function autoBindHandlers(el
-/*: Object*/
-, fns
-/*: Array<string>*/
+function compactType(props
+/*: ?{ verticalCompact: boolean, compactType: CompactType }*/
 )
-/*: void*/
+/*: CompactType*/
 {
-  fns.forEach(function (key) {
-    return el[key] = el[key].bind(el);
-  });
+  var _ref3 = props || {},
+      verticalCompact = _ref3.verticalCompact,
+      compactType = _ref3.compactType;
+
+  return verticalCompact === false ? null : compactType;
 }
 
 function log() {

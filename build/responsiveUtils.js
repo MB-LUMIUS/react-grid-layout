@@ -3,9 +3,9 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.findOrGenerateResponsiveLayout = findOrGenerateResponsiveLayout;
 exports.getBreakpointFromWidth = getBreakpointFromWidth;
 exports.getColsFromBreakpoint = getColsFromBreakpoint;
-exports.findOrGenerateResponsiveLayout = findOrGenerateResponsiveLayout;
 exports.sortBreakpoints = sortBreakpoints;
 
 var _utils = require("./utils");
@@ -18,7 +18,7 @@ var _utils = require("./utils");
  * @return {String}       Highest breakpoint that is less than width.
  */
 function getBreakpointFromWidth(breakpoints
-/*: Breakpoints*/
+/*: Breakpoints<Breakpoint>*/
 , width
 /*: number*/
 )
@@ -45,7 +45,7 @@ function getBreakpointFromWidth(breakpoints
 function getColsFromBreakpoint(breakpoint
 /*: Breakpoint*/
 , cols
-/*: Breakpoints*/
+/*: Breakpoints<Breakpoint>*/
 )
 /*: number*/
 {
@@ -72,9 +72,9 @@ function getColsFromBreakpoint(breakpoint
 
 
 function findOrGenerateResponsiveLayout(layouts
-/*: ResponsiveLayout*/
+/*: ResponsiveLayout<Breakpoint>*/
 , breakpoints
-/*: Breakpoints*/
+/*: Breakpoints<Breakpoint>*/
 , breakpoint
 /*: Breakpoint*/
 , lastBreakpoint
@@ -118,7 +118,7 @@ function findOrGenerateResponsiveLayout(layouts
 
 
 function sortBreakpoints(breakpoints
-/*: Breakpoints*/
+/*: Breakpoints<Breakpoint>*/
 )
 /*: Array<Breakpoint>*/
 {
